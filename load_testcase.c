@@ -80,7 +80,27 @@ int main(int argc, char *argv[]) {
             printf("J type (jal), addr=0x%06X, JumpAddr=0x%09X", tmp->word_ind,
                    (isolate_bits(i, 31, 28) << 28) | (tmp->word_ind << 2));
         } else {
-            printf("I type");
+            printf("I type ");
+
+            if (tmp->opcode == 4 || tmp->opcode == 5) {
+                switch(tmp->opcode) {
+                    case 4:
+                        printf("(beq)");
+                        break;
+                    case 5:
+                        printf("(bne)");
+                        break;
+                }
+                printf(", Rs=%d ", tmp->rs);
+                print_reg(tmp->rs);
+                printf(", Rt=%d ", tmp->rt);
+                print_reg(tmp->rt);
+                printf(", Imm=0x%04X, signext=0x%08X (%d), BranchAddr=0x%08X", tmp->immed,
+                       (int)tmp->immed,
+                       (int)tmp->immed,
+                       ((int)tmp->immed << 2) + i + 4);
+            }
+
         }
 
         printf("\n");
@@ -150,6 +170,9 @@ void print_funct(uint8_t funct) {
             break;
         case 9:
             printf("(jalr)");
+            break;
+        case 12:
+            printf("(syscall)");
             break;
         case 32:
             printf("(add)");
