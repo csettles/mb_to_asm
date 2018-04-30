@@ -19,4 +19,20 @@ typedef struct _mb_hdr {
     unsigned char filler2[64 - 16];    /* Overall header is 64 bytes */
 } MB_HDR, *MB_HDR_PTR;
 
+typedef struct _instr {
+    uint8_t opcode;
+    uint8_t rs;
+    uint8_t rt;
+    uint8_t rd;
+    uint8_t shamt;
+    uint8_t funct;
+    uint16_t immed;
+    uint32_t word_ind;
+} *instruction;
+
+int isolate_bits(int base, int start, int end);
+instruction create_instr(int opcode);
+void print_funct(uint8_t funct);
+void print_reg(uint8_t reg);
+
 #endif //LAB5_MIPS_ASM_HEADER_H
