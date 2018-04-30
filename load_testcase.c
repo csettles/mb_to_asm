@@ -80,21 +80,27 @@ int main(int argc, char *argv[]) {
             printf("J type (jal), addr=0x%06X, JumpAddr=0x%09X", tmp->word_ind,
                    (isolate_bits(i, 31, 28) << 28) | (tmp->word_ind << 2));
         } else {
-            printf("I type");
+            printf("I type ");
+	    print_opcode(tmp->funct);
+	    printf("Rs=%d ", tmp->rs);
+	    print_reg(tmp->rs);
+	    printf(", Rt=%d", tmp->rt);
+	    print_reg(tmp->rt);
+	    printf(", Imm=0x%04X", tmp->immed);
+	    printf(", signext: 0x%08X (%d),\n", (int)tmp->immed, (int)tmp->immed);
+
 	    /* load/store immediate */
-	    if(tmp->opcode >= 0x0f) {
-	      printf(" (lhu)\n");
-	      printf("Rs=%d ", tmp->rs);
-	      print_reg(tmp->rs);
-	      printf(", Rt=%d", tmp->rt);
-	      print_reg(tmp->rt);
-	      printf(", Imm=0x%04X", tmp->immed);
-	      printf(", signext: 0x%08X (%d),\n", (int)tmp->immed, (int)tmp->immed);
+	    if(tmp->opcode >= 0x0F) {
 	      printf("EffAddr=R[");
 	      print_reg(tmp->rs);
 	      printf("] + 0x%08X", (int)tmp->immed);
-	    } 
-        }
+
+	    /* branch */
+	    } else if (tmp->opcode == 0) {
+		
+	    /* all other immed */
+	    }
+	} 
 
         printf("\n");
         free(tmp);
@@ -136,6 +142,64 @@ instruction create_instr(int opcode) {
     ret->word_ind = (uint8_t)isolate_bits(opcode, 25, 0);
 
     return ret;
+}
+
+void print_opcode(uint8_t opcode) {
+  switch (opcode) {
+    case 8:
+      printf("(addi)");
+      break;
+    case 9:
+      printf("(addiu)");
+      break;
+    case 0xC:
+      printf("(andi)");
+      break;
+    case 0xD:
+      printf("(ori)");
+      break;
+    case 0xE:
+      printf("(xori)");
+      break;
+    case 0xA:
+      printf("(slti)");
+      break;
+    case 0xB:
+      printf("(sltui)");
+      break;
+    case 0x4:
+      printf("(beq)");
+      break;
+    case 0x5:
+      printf("(bne)");
+      break;
+    case 0x20:
+      printf("(lb)");
+      break;
+    case 0x24:
+      printf("(lbu)");
+      break;
+    case 0x21:
+      printf("(lh)");
+      break;
+    case 0x25:
+      printf("(lhu)");
+      break;
+    case 0xF:
+      printf("(lui)");
+      break;
+    case 0x23:
+      printf("(lw)");
+      break;
+    case 0x28:
+      printf("(sb)");
+      break;
+    case 0x29:
+      printf("(sh)");
+      break;
+    case 0x2B:
+      printf("(sw)");
+      break;
 }
 
 void print_funct(uint8_t funct) {
