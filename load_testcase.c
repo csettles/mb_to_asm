@@ -80,9 +80,21 @@ int main(int argc, char *argv[]) {
             printf("J type (jal), addr=0x%06X, JumpAddr=0x%09X", tmp->word_ind,
                    (isolate_bits(i, 31, 28) << 28) | (tmp->word_ind << 2));
         } else {
-            printf("I type ");
-
-            if (tmp->opcode == 4 || tmp->opcode == 5) {
+            printf("I type");
+	    /* load/store immediate */
+	    if(tmp->opcode >= 0x0f) {
+            printf(" (lhu)\n");
+            printf("Rs=%d ", tmp->rs);
+            print_reg(tmp->rs);
+            printf(", Rt=%d", tmp->rt);
+            print_reg(tmp->rt);
+            printf(", Imm=0x%04X", tmp->immed);
+            printf(", signext: 0x%08X (%d),\n", (int) tmp->immed, (int) tmp->immed);
+            printf("EffAddr=R[");
+            print_reg(tmp->rs);
+            printf("] + 0x%08X", (int) tmp->immed);
+        }
+            else if (tmp->opcode == 4 || tmp->opcode == 5) {
                 switch(tmp->opcode) {
                     case 4:
                         printf("(beq)");
@@ -101,6 +113,8 @@ int main(int argc, char *argv[]) {
                        ((int)tmp->immed << 2) + i + 4);
             }
 
+        } else {
+            printf("Unknown opcode");
         }
 
         printf("\n");
