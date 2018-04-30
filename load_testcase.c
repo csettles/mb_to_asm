@@ -60,8 +60,8 @@ int main(int argc, char *argv[]) {
 
     /* ok, now dump out the instructions loaded: */
     for (i = 0; i < memp; i += 4) {/* i contains byte offset addresses */
-        tmp = create_instr(mem[i/4]);
-        printf("[%08x] @PC=0x%08X, Opcode=0x%02X, ", mem[i/4], i, tmp->opcode);
+        tmp = create_instr(mem[i / 4]);
+        printf("@PC=0x%08X, Opcode=0x%02X, ", i, tmp->opcode);
 
         if (tmp->opcode == 0) {
             printf("R type, Function=0x%02X ", tmp->funct);
@@ -81,21 +81,20 @@ int main(int argc, char *argv[]) {
                    (isolate_bits(i, 31, 28) << 28) | (tmp->word_ind << 2));
         } else {
             printf("I type");
-	    /* load/store immediate */
-	    if(tmp->opcode >= 0x0f) {
-            printf(" (lhu)\n");
-            printf("Rs=%d ", tmp->rs);
-            print_reg(tmp->rs);
-            printf(", Rt=%d", tmp->rt);
-            print_reg(tmp->rt);
-            printf(", Imm=0x%04X", tmp->immed);
-            printf(", signext: 0x%08X (%d),\n", (int) tmp->immed, (int) tmp->immed);
-            printf("EffAddr=R[");
-            print_reg(tmp->rs);
-            printf("] + 0x%08X", (int) tmp->immed);
-        }
-            else if (tmp->opcode == 4 || tmp->opcode == 5) {
-                switch(tmp->opcode) {
+            /* load/store immediate */
+            if (tmp->opcode >= 0x0f) {
+                printf(" (lhu)");
+                printf("Rs=%d ", tmp->rs);
+                print_reg(tmp->rs);
+                printf(", Rt=%d", tmp->rt);
+                print_reg(tmp->rt);
+                printf(", Imm=0x%04X", tmp->immed);
+                printf(", signext: 0x%08X (%d),", (int) tmp->immed, (int) tmp->immed);
+                printf("EffAddr=R[");
+                print_reg(tmp->rs);
+                printf("] + 0x%08X", (int) tmp->immed);
+            } else if (tmp->opcode == 4 || tmp->opcode == 5) {
+                switch (tmp->opcode) {
                     case 4:
                         printf("(beq)");
                         break;
@@ -108,13 +107,10 @@ int main(int argc, char *argv[]) {
                 printf(", Rt=%d ", tmp->rt);
                 print_reg(tmp->rt);
                 printf(", Imm=0x%04X, signext=0x%08X (%d), BranchAddr=0x%08X", tmp->immed,
-                       (int)tmp->immed,
-                       (int)tmp->immed,
-                       ((int)tmp->immed << 2) + i + 4);
+                       (int) tmp->immed,
+                       (int) tmp->immed,
+                       ((int) tmp->immed << 2) + i + 4);
             }
-
-        } else {
-            printf("Unknown opcode");
         }
 
         printf("\n");
@@ -139,22 +135,22 @@ instruction create_instr(int opcode) {
     instruction ret;
 
     ret = malloc(sizeof(struct _instr));
-    ret->opcode = (uint8_t)isolate_bits(opcode, 31, 26);
+    ret->opcode = (uint8_t) isolate_bits(opcode, 31, 26);
 
     /* R and I type instructions */
-    ret->rs = (uint8_t)isolate_bits(opcode, 25, 21);
-    ret->rt = (uint8_t)isolate_bits(opcode, 20, 16);
+    ret->rs = (uint8_t) isolate_bits(opcode, 25, 21);
+    ret->rt = (uint8_t) isolate_bits(opcode, 20, 16);
 
     /* R type instructions */
-    ret->rd = (uint8_t)isolate_bits(opcode, 15, 11);
-    ret->shamt = (uint8_t)isolate_bits(opcode, 10, 6);
-    ret->funct = (uint8_t)isolate_bits(opcode, 5, 0);
+    ret->rd = (uint8_t) isolate_bits(opcode, 15, 11);
+    ret->shamt = (uint8_t) isolate_bits(opcode, 10, 6);
+    ret->funct = (uint8_t) isolate_bits(opcode, 5, 0);
 
     /* I type instruction */
-    ret->immed = (uint8_t)isolate_bits(opcode, 15, 0);
+    ret->immed = (uint8_t) isolate_bits(opcode, 15, 0);
 
     /* J type instruction */
-    ret->word_ind = (uint8_t)isolate_bits(opcode, 25, 0);
+    ret->word_ind = (uint8_t) isolate_bits(opcode, 25, 0);
 
     return ret;
 }
@@ -229,17 +225,17 @@ void print_reg(uint8_t reg) {
     } else if (reg == 1) {
         printf("($at)");
     } else if (reg == 2 || reg == 3) {
-        printf("($v%d)", reg-2);
+        printf("($v%d)", reg - 2);
     } else if (reg >= 4 && reg <= 7) {
-        printf("($a%d)", reg-4);
+        printf("($a%d)", reg - 4);
     } else if (reg >= 8 && reg <= 15) {
-        printf("($t%d)", reg-8);
+        printf("($t%d)", reg - 8);
     } else if (reg >= 16 && reg <= 23) {
-        printf("($s%d)", reg-16);
+        printf("($s%d)", reg - 16);
     } else if (reg == 24 || reg == 25) {
-        printf("($t%d)", reg-24);
+        printf("($t%d)", reg - 24);
     } else if (reg == 26 || reg == 27) {
-        printf("($k%d)", reg-26);
+        printf("($k%d)", reg - 26);
     } else if (reg == 28) {
         printf("($gp)");
     } else if (reg == 29) {
