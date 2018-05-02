@@ -30,6 +30,34 @@ typedef struct _instr {
     uint32_t word_ind;
 } *instruction;
 
+typdef struct _ifid { /* instruction fetch/decode basket */
+  int new_in;
+  instruction *new_instr;
+} bskt_ifid;
+
+typdef struct _idex { /* instruction decode/execute basket */
+  int new_in;
+  uint32_t regA;
+  uint32_t regB;
+  uint32_t sign_ext;
+  uint32_t left_shift;
+} bskt_idex;
+
+typdef struct _exmem { /* execute/memory access bakset */
+  int new_in;
+  uint32_t result;
+  
+} bskt_exmem;
+
+typdef struct _memwb { /* memory access/write back basket */
+  int new_in;
+} bskt_memwb;
+
+typdef struct _wbif { /* write back/instruction fetch basket */
+  int new_in;
+} bskt_wbif;
+
+
 int isolate_bits(int base, int start, int end);
 instruction create_instr(int opcode);
 void print_funct(uint8_t funct);
