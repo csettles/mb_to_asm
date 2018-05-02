@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +10,7 @@ typedef uint32_t MIPS, *MIPS_PTR; /* 4 bytes */
 MB_HDR mb_hdr;        /* Header area */
 MIPS mem[1024];        /* Room for 4K bytes */
 
-instruction mips_instr[1024] /* all instructions */
+instruction mips_instr[1024]; /* all instructions */
 int haltflag;
 
 int main(int argc, char *argv[]) {

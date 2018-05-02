@@ -32,6 +32,7 @@ typedef struct _instr {
 
 int isolate_bits(int base, int start, int end);
 instruction create_instr(int opcode);
+void print_opcode(uint8_t opcode);
 void print_funct(uint8_t funct);
 void print_reg(uint8_t reg);
 
