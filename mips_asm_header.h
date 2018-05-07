@@ -32,29 +32,37 @@ typedef struct _instr {
 
 typdef struct _ifid { /* instruction fetch/decode basket */
   int new_in;
-  instruction *new_instr;
+  uint32_t next_pc;
 } bskt_ifid;
 
 typdef struct _idex { /* instruction decode/execute basket */
   int new_in;
   uint32_t regA;
   uint32_t regB;
-  uint32_t sign_ext;
+  int32_t sign_ext;
   uint32_t left_shift;
+  uint32_t *next_pc;
 } bskt_idex;
 
 typdef struct _exmem { /* execute/memory access bakset */
   int new_in;
-  uint32_t result;
+  uint32_t alu_result; /* ALU out */
+  uint32_t *next_pc; /* points to next pc from idex */
+  /* zero flag ?*/
+  /* next pc ? */
+  
   
 } bskt_exmem;
 
 typdef struct _memwb { /* memory access/write back basket */
   int new_in;
+  uint32_t mem_data;
+  
 } bskt_memwb;
 
 typdef struct _wbif { /* write back/instruction fetch basket */
   int new_in;
+  
 } bskt_wbif;
 
 

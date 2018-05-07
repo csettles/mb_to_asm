@@ -14,6 +14,12 @@ MIPS mem[1024];        /* Room for 4K bytes */
 instruction mips_instr[1024] /* all instructions */
 int haltflag;
 
+bskt_ifid ifid;
+bskt_idex idex;
+bskt_exmem exmem;
+bskt_memwb memwb;
+bskt_wbif wbif;
+
 int main(int argc, char *argv[]) {
     FILE *fd;
     int n, i;
@@ -114,14 +120,28 @@ instruction create_instr(int opcode) {
 void wb(void) {
 }
 
-void mem(void) {
+void mem_access(void) {
 }
 
 void ex(void) {
 }
 
 void id(void) {
+  instruction *curr_instr = mips_instr[PC/4];
+  ifid.new_in = 0;
+  idex.new_in = 1;
+  idex.regA = reg[curr_instr->rs];
+  idex.regB = reg[curr_instr->rt];
+  idex.sign_ext = int32_t(curr_instr->immed); /* sign extension through casting */
+  idex.left_shift = idex.sign_ext << 2;
+  idex.next_pc = &ifid.next_pc; /* only really needs to be done onece */
 }
 
+
+
 void ifetch(void) {
+  /* new data */
+  wbif.new_in = 0;
+  ifid.new_in = 1;
+  ifid_next_pc = PC + 4;
 }
