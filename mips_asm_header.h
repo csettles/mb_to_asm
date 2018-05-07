@@ -11,6 +11,16 @@
 #ifndef LAB5_MIPS_ASM_HEADER_H
 #define LAB5_MIPS_ASM_HEADER_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <unistd.h>
+
+#define NUM_REGS 32
+
+typedef uint32_t MIPS, *MIPS_PTR; /* 4 bytes */
+
 typedef struct _mb_hdr {
     char signature[4];        /* Signature = 0x7F, 'M', 'B", 0x00 */
     unsigned int size;        /* Size of assembler program portion, bytes */
@@ -30,12 +40,12 @@ typedef struct _instr {
     uint32_t word_ind;
 } *instruction;
 
-typdef struct _ifid { /* instruction fetch/decode basket */
+typedef struct _ifid { /* instruction fetch/decode basket */
   int new_in;
   uint32_t next_pc;
 } bskt_ifid;
 
-typdef struct _idex { /* instruction decode/execute basket */
+typedef struct _idex { /* instruction decode/execute basket */
   int new_in;
   uint32_t regA;
   uint32_t regB;
@@ -44,7 +54,7 @@ typdef struct _idex { /* instruction decode/execute basket */
   uint32_t *next_pc;
 } bskt_idex;
 
-typdef struct _exmem { /* execute/memory access bakset */
+typedef struct _exmem { /* execute/memory access bakset */
   int new_in;
   uint32_t alu_result; /* ALU out */
   uint32_t *next_pc; /* points to next pc from idex */
@@ -54,13 +64,13 @@ typdef struct _exmem { /* execute/memory access bakset */
   
 } bskt_exmem;
 
-typdef struct _memwb { /* memory access/write back basket */
+typedef struct _memwb { /* memory access/write back basket */
   int new_in;
   uint32_t mem_data;
   
 } bskt_memwb;
 
-typdef struct _wbif { /* write back/instruction fetch basket */
+typedef struct _wbif { /* write back/instruction fetch basket */
   int new_in;
   
 } bskt_wbif;
@@ -68,7 +78,16 @@ typdef struct _wbif { /* write back/instruction fetch basket */
 
 int isolate_bits(int base, int start, int end);
 instruction create_instr(int opcode);
-void print_funct(uint8_t funct);
 void print_reg(uint8_t reg);
+void print_regs(void);
+
+int verify_header(FILE *fd);
+void load_instructions(FILE *fd);
+
+void mem_access(void);
+void wb(void);
+void ex(void);
+void id(void);
+void ifetch(void);
 
 #endif //LAB5_MIPS_ASM_HEADER_H

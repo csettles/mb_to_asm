@@ -17,7 +17,7 @@
 typedef uint32_t MIPS, *MIPS_PTR; /* 4 bytes */
 
 MB_HDR mb_hdr;        /* Header area */
-MIPS mem[1024];        /* Room for 4K bytes */
+MIPS mem[1024];       /* Room for 4K bytes */
 
 int main(int argc, char *argv[]) {
     FILE *fd;
@@ -60,8 +60,8 @@ int main(int argc, char *argv[]) {
 
     /* ok, now dump out the instructions loaded: */
     for (i = 0; i < memp; i += 4) {/* i contains byte offset addresses */
-        tmp = create_instr(mem[i/4]);
-        printf("[%08x] @PC=0x%08X, Opcode=0x%02X, ", mem[i/4], i, tmp->opcode);
+        tmp = create_instr(mem[i / 4]);
+        printf("@PC=0x%08X, Opcode=0x%02X, ", i, tmp->opcode);
 
         if (tmp->opcode == 0) {
             printf("R type, Function=0x%02X ", tmp->funct);
@@ -81,27 +81,24 @@ int main(int argc, char *argv[]) {
                    (isolate_bits(i, 31, 28) << 28) | (tmp->word_ind << 2));
         } else {
             printf("I type ");
-	    print_opcode(tmp->funct);
-	    printf("Rs=%d ", tmp->rs);
-	    print_reg(tmp->rs);
-	    printf(", Rt=%d", tmp->rt);
-	    print_reg(tmp->rt);
-	    printf(", Imm=0x%04X", tmp->immed);
-	    printf(", signext: 0x%08X (%d),\n", (int)tmp->immed, (int)tmp->immed);
+            print_opcode(tmp->funct);
+            printf("Rs=%d ", tmp->rs);
+            print_reg(tmp->rs);
+            printf(", Rt=%d", tmp->rt);
+            print_reg(tmp->rt);
+            printf(", Imm=0x%04X", tmp->immed);
+            printf(", signext: 0x%08X (%d),", (int) tmp->immed, (int) tmp->immed);
 
-	    /* load/store immediate */
-	    if(tmp->opcode >= 0x0F) {
-	      printf("EffAddr=R[");
-	      print_reg(tmp->rs);
-	      printf("] + 0x%08X", (int)tmp->immed);
-
-	    /* branch */
-	    } else if (tmp->opcode == 0) {
-		
-	    /* all other immed */
-	    }
-	} 
-
+            /* load/store immediate */
+            if (tmp->opcode >= 0x0F) {
+                printf("EffAddr=R[");
+                print_reg(tmp->rs);
+                printf("] + 0x%08X", (int) tmp->immed);
+                /* branch */
+            } else if (tmp->opcode == 4 || tmp->opcode == 5) {
+                printf("BranchAddr=0x%08X", ((int) tmp->immed << 2) + i + 4);
+            }
+        }
         printf("\n");
         free(tmp);
     }
@@ -145,61 +142,62 @@ instruction create_instr(int opcode) {
 }
 
 void print_opcode(uint8_t opcode) {
-  switch (opcode) {
-    case 8:
-      printf("(addi)");
-      break;
-    case 9:
-      printf("(addiu)");
-      break;
-    case 0xC:
-      printf("(andi)");
-      break;
-    case 0xD:
-      printf("(ori)");
-      break;
-    case 0xE:
-      printf("(xori)");
-      break;
-    case 0xA:
-      printf("(slti)");
-      break;
-    case 0xB:
-      printf("(sltui)");
-      break;
-    case 0x4:
-      printf("(beq)");
-      break;
-    case 0x5:
-      printf("(bne)");
-      break;
-    case 0x20:
-      printf("(lb)");
-      break;
-    case 0x24:
-      printf("(lbu)");
-      break;
-    case 0x21:
-      printf("(lh)");
-      break;
-    case 0x25:
-      printf("(lhu)");
-      break;
-    case 0xF:
-      printf("(lui)");
-      break;
-    case 0x23:
-      printf("(lw)");
-      break;
-    case 0x28:
-      printf("(sb)");
-      break;
-    case 0x29:
-      printf("(sh)");
-      break;
-    case 0x2B:
-      printf("(sw)");
-      break;
+    switch (opcode) {
+        case 8:
+            printf("(addi)");
+            break;
+        case 9:
+            printf("(addiu)");
+            break;
+        case 0xC:
+            printf("(andi)");
+            break;
+        case 0xD:
+            printf("(ori)");
+            break;
+        case 0xE:
+            printf("(xori)");
+            break;
+        case 0xA:
+            printf("(slti)");
+            break;
+        case 0xB:
+            printf("(sltui)");
+            break;
+        case 0x4:
+            printf("(beq)");
+            break;
+        case 0x5:
+            printf("(bne)");
+            break;
+        case 0x20:
+            printf("(lb)");
+            break;
+        case 0x24:
+            printf("(lbu)");
+            break;
+        case 0x21:
+            printf("(lh)");
+            break;
+        case 0x25:
+            printf("(lhu)");
+            break;
+        case 0xF:
+            printf("(lui)");
+            break;
+        case 0x23:
+            printf("(lw)");
+            break;
+        case 0x28:
+            printf("(sb)");
+            break;
+        case 0x29:
+            printf("(sh)");
+            break;
+        case 0x2B:
+            printf("(sw)");
+            break;
+    }
 }
 
 void print_funct(uint8_t funct) {
@@ -227,6 +225,9 @@ void print_funct(uint8_t funct) {
             break;
         case 9:
             printf("(jalr)");
+            break;
+        case 12:
+            printf("(syscall)");
             break;
         case 32:
             printf("(add)");
