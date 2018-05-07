@@ -36,4 +36,13 @@ void print_opcode(uint8_t opcode);
 void print_funct(uint8_t funct);
 void print_reg(uint8_t reg);
 
+int verify_header(FILE *fd);
+void load_instructions(FILE *fd);
+
+void mem_access(void);
+void wb(void);
+void ex(void);
+void id(void);
+void ifetch(void);
+
 #endif //LAB5_MIPS_ASM_HEADER_H

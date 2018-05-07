@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <unistd.h>
+
 
 #include "mips_asm_header.h"
 
@@ -15,14 +17,13 @@ int haltflag;
 
 int main(int argc, char *argv[]) {
     FILE *fd;
-    int n, i;
-    instruction tmp;
+    int total_clocks = 0;
 
     if (argc != 2) {
         fprintf(stderr, "usage: mips_sim filename\n");
         return EXIT_FAILURE;
     }
-    
+
     /* format the MIPS Binary header */
     fd = fopen(argv[1], "rb");
     if (fd == NULL) {
@@ -31,46 +32,47 @@ int main(int argc, char *argv[]) {
     }
 
     if(verify_header(fd) != 0)
-      return EXIT_FAILURE;
+        return EXIT_FAILURE;
 
     load_instructions(fd);
-    
+
     /* run simulator */
     for(haltflag = 0; haltflag; total_clocks++) {
-      
+
     }
 }
 
-void load_instructions(int fd) {
-  int memp;
-  memp = 0;        /* This is the memory pointer, a byte offset */
-  /* read the binary code a word at a time */
-  do {
-    n = fread((void *) &mem[memp / 4], 4, 1, fd); /* note div/4 to make word index */
-    if (n)
-      memp += 4;    /* Increment byte pointer by size of instr */
-    else
-      break;
-  } while (memp < sizeof(mem));
+void load_instructions(FILE *fd) {
+    int i, n;
+    int memp;
+    memp = 0;        /* This is the memory pointer, a byte offset */
+    /* read the binary code a word at a time */
+    do {
+        n = fread((void *) &mem[memp / 4], 4, 1, fd); /* note div/4 to make word index */
+        if (n)
+            memp += 4;    /* Increment byte pointer by size of instr */
+        else
+            break;
+    } while (memp < sizeof(mem));
 
-  close(fd);
+    fclose(fd);
 
-  /* ok, now conver the insructions loaded */
-  for (i = 0; i < memp; i += 4) {/* i contains byte offset addresses */
-    mips_instr[i/4] = create_instr(mem[i/4]);
-    
-  }
+    /* ok, now convert the insructions loaded */
+    for (i = 0; i < memp; i += 4) {/* i contains byte offset addresses */
+        mips_instr[i/4] = create_instr(mem[i/4]);
+
+    }
 }
 
-int verify_header(int fd) {
-     /* read the header and verify it. */
+int verify_header(FILE *fd) {
+    /* read the header and verify it. */
     fread((void *) &mb_hdr, sizeof(mb_hdr), 1, fd);
-    if (!strcmp(mb_hdr.signature, "~MB") == 0) {
+    if (strcmp(mb_hdr.signature, "~MB") != 0) {
         printf("\nThis isn't really a mips_asm binary file - quitting.\n");
         return EXIT_FAILURE;
     }
 
-    printf("\n%s Loaded ok, program size=%d bytes.\n\n", argv[1], mb_hdr.size);
+    printf("\nProgram size=%d bytes.\n\n", mb_hdr.size);
     return 0;
 }
 
@@ -111,16 +113,21 @@ instruction create_instr(int opcode) {
 }
 
 void wb(void) {
+
 }
 
-void mem(void) {
+void mem_access(void) {
+
 }
 
 void ex(void) {
+
 }
 
 void id(void) {
+
 }
 
 void ifetch(void) {
+
 }
