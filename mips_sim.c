@@ -1,17 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <unistd.h>
-
-
 #include "mips_asm_header.h"
 
-typedef uint32_t MIPS, *MIPS_PTR; /* 4 bytes */
-
-MB_HDR mb_hdr;        /* Header area */
+MB_HDR mb_hdr;         /* Header area */
 MIPS mem[1024];        /* Room for 4K bytes */
 
+int PC = 0;                /* program counter */
+int reg[NUM_REGS] = {0};
 instruction mips_instr[1024]; /* all instructions */
 int haltflag;
 
@@ -38,8 +31,11 @@ int main(int argc, char *argv[]) {
 
     /* run simulator */
     for(haltflag = 0; haltflag; total_clocks++) {
-
+        //mem(); etc
     }
+
+    print_regs();
+    return 0;
 }
 
 void load_instructions(FILE *fd) {
@@ -58,16 +54,15 @@ void load_instructions(FILE *fd) {
     fclose(fd);
 
     /* ok, now convert the insructions loaded */
-    for (i = 0; i < memp; i += 4) {/* i contains byte offset addresses */
-        mips_instr[i/4] = create_instr(mem[i/4]);
-
+    for (PC = 0; PC < memp; PC += 4) {/* i contains byte offset addresses */
+        mips_instr[PC/4] = create_instr(mem[PC/4]);
     }
 }
 
 int verify_header(FILE *fd) {
     /* read the header and verify it. */
     fread((void *) &mb_hdr, sizeof(mb_hdr), 1, fd);
-    if (strcmp(mb_hdr.signature, "~MB") != 0) {
+    if (!strcmp(mb_hdr.signature, "~MB") == 0) {
         printf("\nThis isn't really a mips_asm binary file - quitting.\n");
         return EXIT_FAILURE;
     }
@@ -130,4 +125,43 @@ void id(void) {
 
 void ifetch(void) {
 
+}
+
+void print_regs(void) {
+    uint8_t i = 0;
+
+    for (; i < NUM_REGS; i++) {
+        print_reg(i);
+        printf(" = %d\n", reg[i]);
+    }
+}
+
+void print_reg(uint8_t reg) {
+    if (reg == 0) {
+        printf("$zero");
+    } else if (reg == 1) {
+        printf("$at");
+    } else if (reg == 2 || reg == 3) {
+        printf("$v%d", reg-2);
+    } else if (reg >= 4 && reg <= 7) {
+        printf("$a%d", reg-4);
+    } else if (reg >= 8 && reg <= 15) {
+        printf("$t%d", reg-8);
+    } else if (reg >= 16 && reg <= 23) {
+        printf("$s%d", reg-16);
+    } else if (reg == 24 || reg == 25) {
+        printf("$t%d", reg-24);
+    } else if (reg == 26 || reg == 27) {
+        printf("$k%d", reg-26);
+    } else if (reg == 28) {
+        printf("$gp");
+    } else if (reg == 29) {
+        printf("$sp");
+    } else if (reg == 30) {
+        printf("$fp");
+    } else if (reg == 31) {
+        printf("$ra");
+    } else {
+        printf("unknown");
+    }
 }
