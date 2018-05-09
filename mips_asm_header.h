@@ -19,7 +19,7 @@
 
 #define NUM_REGS 32
 
-typedef uint32_t MIPS, *MIPS_PTR; /* 4 bytes */
+typedef uint32_t MIPS; /* 4 bytes */
 
 typedef struct _mb_hdr {
     char signature[4];        /* Signature = 0x7F, 'M', 'B", 0x00 */
@@ -89,5 +89,13 @@ void wb(void);
 void ex(void);
 void id(void);
 void ifetch(void);
+
+int branch_type(uint8_t);
+int reg_type(uint8_t);
+int mem_type(uint8_t);
+int j_type(uint8_t);
+int load_type(uint8_t opcode);
+int store_type(uint8_t opcode);
+int sys_type(uint32_t inst);
 
 #endif //LAB5_MIPS_ASM_HEADER_H

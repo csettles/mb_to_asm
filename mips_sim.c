@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
     load_instructions(fd);
 
     /* run simulator */
-    for(haltflag = 0; haltflag; total_clocks++, PC += 4) {
+    for(haltflag = 0; !haltflag; total_clocks++) {
         wb(); mem_access(); ex(); id(); ifetch();
     }
 
@@ -122,7 +122,93 @@ void mem_access(void) {
 }
 
 void ex(void) {
+    instruction inst;
+    inst = mips_instr[PC/4];
 
+    if (sys_type(mem[PC/4]) && reg[2] == 10) {
+        haltflag++;
+    } else if (mem_type(inst->opcode)) {
+        exmem.alu_result = mem[idex.regA] + idex.sign_ext;
+        exmem.next_pc = idex.next_pc;
+    } else if (branch_type(inst->opcode)) {
+        exmem.alu_result = 0; // this does not matter
+        switch (inst->opcode) {
+            case 0x04: // beq
+                if (reg[idex.regA] == reg[idex.regB]) {
+                    exmem.next_pc = idex.next_pc + idex.left_shift;
+                } else {
+                    exmem.next_pc = idex.next_pc;
+                }
+                break;
+            case 0x05:
+                if (reg[idex.regA] != reg[idex.regB]) {
+                    exmem.next_pc = idex.next_pc + idex.left_shift;
+                } else {
+                    exmem.next_pc = idex.next_pc;
+                }
+                break;
+        }
+    } else if (reg_type(inst->opcode)) {
+        exmem.next_pc = idex.next_pc;
+        if (inst->funct== 0) { // sll
+            exmem.alu_result = idex.regB << inst->shamt;
+        } else if (inst->funct == 2) { //srl
+            exmem.alu_result = idex.regB >> inst->shamt;
+        } else if (inst->funct == 3) { //sra
+            exmem.alu_result = (uint32_t)((int32_t)idex.regB >> inst->shamt);
+        } else if (inst->funct == 4) { //sllv
+            exmem.alu_result = idex.regB << idex.regA;
+        } else if (inst->funct == 6) { //srlv
+            exmem.alu_result = idex.regB >> idex.regA;
+        } else if (inst->funct == 7) { //srav
+            exmem.alu_result = (uint32_t)((int32_t)idex.regB << idex.regA);
+        } else if (inst->funct == 8) { //jr
+            // what do
+        } else if (inst->funct == 9) { //jalr
+            exmem.alu_result = idex.regB << idex.regA;
+        } else if (inst->funct == 12) { //syscall
+            printf("there was a syscall, don't know how to handle\n");
+        } else if (inst->funct == 32) { //add
+            exmem.alu_result = idex.regA + idex.regB;
+        } else if (inst->funct == 33) { //addu
+            exmem.alu_result = idex.regB + idex.regA;
+        } else if (inst->funct == 34) { //sub
+            exmem.alu_result = idex.regA - idex.regB;
+        } else if (inst->funct == 4) { //subu
+            exmem.alu_result = idex.regA - idex.regB;
+        } else if (inst->funct == 36) { //and
+            exmem.alu_result = idex.regA & idex.regB;
+        } else if (inst->funct == 4) { //or
+            exmem.alu_result = idex.regB | idex.regA;
+        } else if (inst->funct == 38) { //xor
+            exmem.alu_result = idex.regB ^ idex.regA;
+        } else if (inst->funct == 39) { //nor
+            exmem.alu_result = ~(idex.regB | idex.regA);
+        } else if (inst->funct == 42) { //slt
+            exmem.alu_result = ((int32_t)idex.regA < (int32_t)idex.regB) ? 1: 0;
+        } else if (inst->funct == 43) { //sltu
+            exmem.alu_result = (idex.regA < idex.regB) ? 1: 0;
+        }
+    } else {
+        exmem.next_pc = idex.next_pc;
+        if (inst->opcode == 8){ //addi
+            exmem.alu_result = idex.regA + idex.sign_ext;
+        } else if (inst->opcode == 9) { //addiu
+            exmem.alu_result = idex.regA + idex.sign_ext;
+        } else if (inst->opcode == 0x0C) { //andi
+            exmem.alu_result = idex.regA & idex.sign_ext;
+        } else if (inst->opcode == 0x0D) { //ori
+            exmem.alu_result = idex.regA | idex.sign_ext;
+        } else if (inst->opcode == 0x0E) { //xori
+            exmem.alu_result = idex.regA ^ idex.sign_ext;
+        } else if (inst->opcode == 0x0A) { //slti
+            exmem.alu_result = ((int32_t)idex.regA < (int32_t)idex.sign_ext) ? 1 : 0;
+        } else if (inst->opcode == 0x0B) { //sltui
+            exmem.alu_result = (idex.regA < idex.sign_ext) ? 1 : 0;
+        } else if (inst->opcode == 0x04) { //beq
+            exmem.alu_result = idex.regA & idex.sign_ext;
+        }
+    }
 }
 
 /**
@@ -131,24 +217,24 @@ void ex(void) {
 void id(void) {
     instruction curr_instr;
     curr_instr = mips_instr[PC/4];
-  ifid.new_in = 0;
-  idex.new_in = 1;
-  idex.regA = reg[curr_instr->rs];
-  idex.regB = reg[curr_instr->rt];
-  idex.sign_ext = (int32_t)(curr_instr->immed); /* sign extension through casting */
-  idex.left_shift = idex.sign_ext << 2;
-  idex.next_pc = &ifid.next_pc; /* only really needs to be done once */
-}
 
+    ifid.new_in = 0;
+    idex.new_in = 1;
+    idex.regA = reg[curr_instr->rs];
+    idex.regB = reg[curr_instr->rt];
+    idex.sign_ext = (int32_t)(curr_instr->immed); /* sign extension through casting */
+    idex.left_shift = idex.sign_ext << 2;
+    idex.next_pc = &ifid.next_pc; /* only really needs to be done once */
+}
 
 /**
  * Fetch
  */
 void ifetch(void) {
-  /* new data */
-  wbif.new_in = 0;
-  ifid.new_in = 1;
-  ifid.next_pc = PC + 4;
+    /* new data */
+    wbif.new_in = 0;
+    ifid.new_in = 1;
+    ifid.next_pc = PC + 4;
 }
 
 void print_regs(void) {
@@ -189,4 +275,35 @@ void print_reg(uint8_t reg) {
         printf("unknown");
     }
 
+}
+
+int branch_type(uint8_t opcode) {
+    return opcode == 4 || opcode == 5;
+}
+
+int reg_type(uint8_t opcode) {
+    return opcode == 0;
+}
+
+int mem_type(uint8_t opcode) {
+    return load_type(opcode) || store_type(opcode);
+}
+
+int load_type(uint8_t opcode) {
+    return opcode == 0x20 ||
+           opcode == 0x21 ||
+           opcode == 0x23 ||
+           opcode == 0x24 ||
+           opcode == 0x25 ||
+           opcode == 0x0F;
+}
+
+int store_type(uint8_t opcode) {
+    return opcode == 0x28 ||
+           opcode == 0x29 ||
+           opcode == 0x2B;
+}
+
+int sys_type(uint32_t inst) {
+    return inst == 0x0000000C;
 }
