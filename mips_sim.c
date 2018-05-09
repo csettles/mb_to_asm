@@ -143,8 +143,8 @@ void ex(void) {
  * Decode
  */
 void id(void) {
-    instruction curr_instr;
-    curr_instr = mips_instr[PC/4];
+  instruction curr_instr;
+  curr_instr = mips_instr[PC/4];
   ifid.new_in = 0;
   idex.new_in = 1;
   idex.regA = reg[curr_instr->rs];
@@ -162,6 +162,8 @@ void ifetch(void) {
   /* new data */
   wbif.new_in = 0;
   ifid.new_in = 1;
+  
+  PC += 4;
   ifid.next_pc = PC + 4;
 
 }
