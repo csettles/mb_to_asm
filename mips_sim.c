@@ -1,7 +1,8 @@
 #include "mips_asm_header.h"
 
 MB_HDR mb_hdr;         /* Header area */
-MIPS mem[1024];        /* Room for 4K bytes */
+MIPS mem[1024];        /* instruction memory, Room for 4K bytes */
+MIPS memory[1024];     /* Data memory */
 
 uint32_t PC = 0;                /* program counter */
 int reg[NUM_REGS] = {0};
@@ -114,11 +115,24 @@ instruction create_instr(int opcode) {
 }
 
 void wb(void) {
-
+  bskt_memwb.new_in = 0;
+  if(/* R-type */) {
+    reg[mips_instr[PC].rd] = bskt_memwb.wb_data;
+  } else if (/* I-type */){
+    reg[mips_instr[PC].rt] = bskt_memwb.wb_data;
+  }
 }
 
-void mem_access(void) {
 
+void mem_access(void) {
+  bskt_exmem.new_in = 0;
+  bskt_memwb.new_in = 1;
+  
+  if(/* load type */) {
+    bskt_memwb.wb_data = memory[bsk_exmem.alu_result];
+  } else {
+    bskt_memwb.wb_data = bskt_exmem.alu_result;
+  }
 }
 
 void ex(void) {
@@ -135,11 +149,7 @@ void id(void) {
   idex.new_in = 1;
   idex.regA = reg[curr_instr->rs];
   idex.regB = reg[curr_instr->rt];
-<<<<<<< HEAD
   idex.sign_ext = (int32_t) curr_instr->immed; /* sign extension through casting */
-=======
-  idex.sign_ext = (int32_t)(curr_instr->immed); /* sign extension through casting */
->>>>>>> 11159821ef44b348521782cc94c11e4ddadb80be
   idex.left_shift = idex.sign_ext << 2;
   idex.next_pc = &ifid.next_pc; /* only really needs to be done once */
 }
@@ -153,10 +163,7 @@ void ifetch(void) {
   wbif.new_in = 0;
   ifid.new_in = 1;
   ifid.next_pc = PC + 4;
-<<<<<<< HEAD
 
-=======
->>>>>>> 11159821ef44b348521782cc94c11e4ddadb80be
 }
 
 void print_regs(void) {
