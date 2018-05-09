@@ -3,7 +3,7 @@
 MB_HDR mb_hdr;         /* Header area */
 MIPS mem[1024];        /* Room for 4K bytes */
 
-int PC = 0;                /* program counter */
+uint32_t PC = 0;                /* program counter */
 int reg[NUM_REGS] = {0};
 instruction mips_instr[1024]; /* all instructions */
 int haltflag;
@@ -36,8 +36,8 @@ int main(int argc, char *argv[]) {
     load_instructions(fd);
 
     /* run simulator */
-    for(haltflag = 0; haltflag; total_clocks++) {
-        //mem(); etc
+    for(haltflag = 0; haltflag; total_clocks++, PC += 4) {
+        wb(); mem_access(); ex(); id(); ifetch();
     }
 
     print_regs();
@@ -60,8 +60,8 @@ void load_instructions(FILE *fd) {
     fclose(fd);
 
     /* ok, now convert the insructions loaded */
-    for (PC = 0; PC < memp; PC += 4) {/* i contains byte offset addresses */
-        mips_instr[PC/4] = create_instr(mem[PC/4]);
+    for (i = 0; i < memp; i += 4) {/* i contains byte offset addresses */
+        mips_instr[i/4] = create_instr(mem[i/4]);
     }
 }
 
@@ -125,27 +125,38 @@ void ex(void) {
   
 }
 
+/**
+ * Decode
+ */
 void id(void) {
-
-  instruction *curr_instr = mips_instr[PC/4];
+    instruction curr_instr;
+    curr_instr = mips_instr[PC/4];
   ifid.new_in = 0;
   idex.new_in = 1;
   idex.regA = reg[curr_instr->rs];
   idex.regB = reg[curr_instr->rt];
+<<<<<<< HEAD
   idex.sign_ext = (int32_t) curr_instr->immed; /* sign extension through casting */
+=======
+  idex.sign_ext = (int32_t)(curr_instr->immed); /* sign extension through casting */
+>>>>>>> 11159821ef44b348521782cc94c11e4ddadb80be
   idex.left_shift = idex.sign_ext << 2;
-  idex.next_pc = &ifid.next_pc; /* only really needs to be done onece */
+  idex.next_pc = &ifid.next_pc; /* only really needs to be done once */
 }
 
 
-
+/**
+ * Fetch
+ */
 void ifetch(void) {
-
   /* new data */
   wbif.new_in = 0;
   ifid.new_in = 1;
   ifid.next_pc = PC + 4;
+<<<<<<< HEAD
 
+=======
+>>>>>>> 11159821ef44b348521782cc94c11e4ddadb80be
 }
 
 void print_regs(void) {
