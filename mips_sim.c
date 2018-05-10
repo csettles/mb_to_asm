@@ -13,7 +13,6 @@ bskt_ifid ifid;
 bskt_idex idex;
 bskt_exmem exmem;
 bskt_memwb memwb;
-bskt_wbif wbif;
 
 int main(int argc, char *argv[]) {
     FILE *fd;
@@ -115,31 +114,38 @@ instruction create_instr(int opcode) {
 }
 
 void wb(void) {
-  instruction curr_instr = mips_instr[bskt_memwb.next_pc/4-1];
-  bskt_memwb.new_in = 0;
+  if(memwb.new_in == 0) {
+    return;
+  }
+
+  instruction curr_instr = mips_instr[memwb.next_pc/4-1];
+  memwb.new_in = 0;
 
   /* reg instr */
-  if(reg_type(curr_instr.opcode)) {
-    reg[curr_instr.rd] = bskt_memwb.wb_data;
+  if(reg_type(curr_instr->opcode)) {
+    reg[curr_instr->rd] = memwb.wb_data;
 
   /* immediate instr excluding branch and store */
-  } else if (!j_type(curr_instr.opcode) && \
-	     !branch_type(curr_instr.opcode) && \
-	     !store_type(curr_instr.opcode)){
-    reg[curr_instr.rt] = bskt_memwb.wb_data;
+  } else if (!j_type(curr_instr->opcode) && \
+	     !branch_type(curr_instr->opcode) && \
+	     !store_type(curr_instr->opcode)){
+    reg[curr_instr->rt] = memwb.wb_data;
   }
 }
 
 
 void mem_access(void) {
-  bskt_exmem.new_in = 0;
-  bskt_memwb.new_in = 1;
-  bsk_memwb.next_pc = bskt_exmem.next_pc;
+  if(exmem.new_in == 0)
+    return;
 
-  if(load_type(mips_instr[bskt_exmem.next_pc/4-1].opcode)) {
-    bskt_memwb.wb_data = memory[bsk_exmem.alu_result];
+  exmem.new_in = 0;
+  memwb.new_in = 1;
+  memwb.next_pc = exmem.next_pc;
+
+  if(load_type(mips_instr[exmem.next_pc/4-1]->opcode)) {
+    memwb.wb_data = memory[exmem.alu_result];
   } else {
-    bskt_memwb.wb_data = bskt_exmem.alu_result;
+    memwb.wb_data = exmem.alu_result;
   }
 
 }
@@ -147,6 +153,13 @@ void mem_access(void) {
 void ex(void) {
     instruction inst;
     inst = mips_instr[PC/4];
+
+    if(idex.new_in == 0)
+      return;
+
+    idex.new_in = 0;
+    exmem.new_in = 1;
+    exmem.next_pc = idex.next_pc;
 
     if (sys_type(mem[PC/4]) && reg[2] == 10) {
         haltflag++;
@@ -240,13 +253,17 @@ void ex(void) {
 void id(void) {
   instruction curr_instr;
   curr_instr = mips_instr[PC/4];
+
+  if(ifid.new_in == 0)
+    return;
+
   ifid.new_in = 0;
   idex.new_in = 1;
   idex.regA = reg[curr_instr->rs];
   idex.regB = reg[curr_instr->rt];
   idex.sign_ext = (int32_t)curr_instr->immed; /* sign extension through casting */
   idex.left_shift = idex.sign_ext << 2;
-  idex.next_pc = &ifid.next_pc; /* only really needs to be done once */
+  idex.next_pc = ifid.next_pc;
 }
 
 
@@ -254,12 +271,14 @@ void id(void) {
  * Fetch
  */
 void ifetch(void) {
-  /* new data */
-  wbif.new_in = 0;
+
+  /* no new instructions */
+  if(haltflag)
+    return;
+
   ifid.new_in = 1;
-  
-  PC += 4;
-  ifid.next_pc = PC + 4;
+  PC += 4; /* need to increment pc for next instruction in the pipeline */
+  ifid.next_pc = PC;
 }
 
 void print_regs(void) {
