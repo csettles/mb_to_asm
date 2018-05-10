@@ -19,7 +19,7 @@
 
 #define NUM_REGS 32
 
-typedef uint32_t MIPS, *MIPS_PTR; /* 4 bytes */
+typedef uint32_t MIPS; /* 4 bytes */
 
 typedef struct _mb_hdr {
     char signature[4];        /* Signature = 0x7F, 'M', 'B", 0x00 */
@@ -57,25 +57,16 @@ typedef struct _idex { /* instruction decode/execute basket */
 typedef struct _exmem { /* execute/memory access bakset */
   int new_in;
   uint32_t alu_result; /* ALU out */
-  uint32_t next_pc; /* points to next pc from idex */
-    
+  uint32_t next_pc;
   /* zero flag ?*/
-  /* next pc ? */
-  
-  
 } bskt_exmem;
 
 typedef struct _memwb { /* memory access/write back basket */
   int new_in;
   uint32_t wb_data;
+  uint32_t next_pc;
   
 } bskt_memwb;
-
-/* might not be needed */
-typedef struct _wbif { /* write back/instruction fetch basket */
-  int new_in;
-  
-} bskt_wbif;
 
 
 int isolate_bits(int base, int start, int end);
@@ -91,5 +82,13 @@ void wb(void);
 void ex(void);
 void id(void);
 void ifetch(void);
+
+int branch_type(uint8_t);
+int reg_type(uint8_t);
+int mem_type(uint8_t);
+int j_type(uint8_t);
+int load_type(uint8_t opcode);
+int store_type(uint8_t opcode);
+int sys_type(uint32_t inst);
 
 #endif //LAB5_MIPS_ASM_HEADER_H
