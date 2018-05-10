@@ -161,16 +161,16 @@ void mem_access(void) {
 
 void ex(void) {
     instruction inst;
-    inst = mips_instr[PC/4];
 
     if(idex.new_in == 0)
       return;
 
+    inst = mips_instr[idex.next_pc/4-1];
     idex.new_in = 0;
     exmem.new_in = 1;
     exmem.next_pc = idex.next_pc;
 
-    if (sys_type(mem[PC/4]) /*&& reg[2] == 10*/) {
+    if (sys_type(mem[idex.next_pc/4-1]) /*&& reg[2] == 10*/) {
         haltflag++;
 	printf("halting..");
     } else if (mem_type(inst->opcode)) {
@@ -264,11 +264,11 @@ void ex(void) {
  */
 void id(void) {
   instruction curr_instr;
-  curr_instr = mips_instr[PC/4];
 
   if(ifid.new_in == 0)
     return;
 
+  curr_instr = mips_instr[ifid.next_pc/4-1];
   ifid.new_in = 0;
   idex.new_in = 1;
   idex.regA = reg[curr_instr->rs];
@@ -277,8 +277,7 @@ void id(void) {
   idex.left_shift = idex.sign_ext << 2;
   idex.next_pc = ifid.next_pc;
 
-  if(curr_instr->opcode == 8 ){
-    curr_instr->word_ind = curr_instr->word_ind << 2;
+  if(curr_instr->opcode == 3 ){
     PC = PC & 0xF000;
     PC = PC | curr_instr->word_ind;
   }
