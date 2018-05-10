@@ -133,10 +133,10 @@ instruction create_instr(int opcode) {
     ret->funct = (uint8_t)isolate_bits(opcode, 5, 0);
 
     /* I type instruction */
-    ret->immed = (uint8_t)isolate_bits(opcode, 15, 0);
+    ret->immed = (uint16_t)isolate_bits(opcode, 15, 0);
 
     /* J type instruction */
-    ret->word_ind = (uint8_t)isolate_bits(opcode, 25, 0);
+    ret->word_ind = (uint32_t)isolate_bits(opcode, 25, 0);
 
     return ret;
 }
