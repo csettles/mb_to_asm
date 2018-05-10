@@ -203,6 +203,7 @@ void ex(void) {
         } else if (inst->funct == 9) { //jalr
             exmem.alu_result = idex.regB << idex.regA;
         } else if (inst->funct == 12) { //syscall
+
             printf("there was a syscall, don't know how to handle\n");
         } else if (inst->funct == 32) { //add
             exmem.alu_result = idex.regA + idex.regB;
