@@ -1,7 +1,7 @@
-#include "mips_asm_header.h"
+ #include "mips_asm_header.h"
 
 MB_HDR mb_hdr;         /* Header area */
-MIPS mem[1024];        /* Room for 4K bytes */
+MIPS mem[1024];        /* instruction memory, Room for 4K bytes */
 
 uint32_t PC = 0;                /* program counter */
 int reg[NUM_REGS] = {0};
@@ -12,7 +12,6 @@ bskt_ifid ifid;
 bskt_idex idex;
 bskt_exmem exmem;
 bskt_memwb memwb;
-bskt_wbif wbif;
 
 int main(int argc, char *argv[]) {
     FILE *fd;
@@ -39,6 +38,8 @@ int main(int argc, char *argv[]) {
     for(haltflag = 0; !haltflag; total_clocks++) {
         printf("clock cycle %d\n", total_clocks);
         wb(); mem_access(); ex(); id(); ifetch();
+	print_regs();
+	printf("Current PC:%d\n", PC);
     }
 
     print_regs();
@@ -106,28 +107,73 @@ instruction create_instr(int opcode) {
     ret->funct = (uint8_t)isolate_bits(opcode, 5, 0);
 
     /* I type instruction */
-    ret->immed = (uint8_t)isolate_bits(opcode, 15, 0);
+    ret->immed = (uint16_t)isolate_bits(opcode, 15, 0);
 
     /* J type instruction */
-    ret->word_ind = (uint8_t)isolate_bits(opcode, 25, 0);
+    ret->word_ind = (uint32_t)isolate_bits(opcode, 25, 0);
 
     return ret;
 }
 
 void wb(void) {
+  if(memwb.new_in == 0) {
+    return;
+  }
 
+  instruction curr_instr = mips_instr[memwb.next_pc/4-1];
+  memwb.new_in = 0;
+
+  /* reg instr */
+  if(reg_type(curr_instr->opcode)) {
+    if(curr_instr->funct == 9) { //jalr
+      reg[31] = memwb.next_pc;
+    } else {
+      reg[curr_instr->rd] = memwb.wb_data;
+    }
+
+
+  } else if(curr_instr->opcode == 3) { /* jal */
+    reg[31] = memwb.next_pc;
+
+    /* immediate instr excluding branch and store */
+  } else if (!j_type(curr_instr->opcode) &&\
+	     !branch_type(curr_instr->opcode) &&\
+	     !store_type(curr_instr->opcode)){
+    reg[curr_instr->rt] = memwb.wb_data;
+  }
 }
 
+
 void mem_access(void) {
+  if(exmem.new_in == 0)
+    return;
+
+  exmem.new_in = 0;
+  memwb.new_in = 1;
+  memwb.next_pc = exmem.next_pc;
+
+  if(load_type(mips_instr[exmem.next_pc/4-1]->opcode)) {
+    memwb.wb_data = mem[exmem.alu_result/4];
+  } else {
+    memwb.wb_data = exmem.alu_result;
+  }
 
 }
 
 void ex(void) {
     instruction inst;
-    inst = mips_instr[PC/4];
 
-    if (sys_type(mem[PC/4]) && reg[2] == 10) {
+    if(idex.new_in == 0)
+      return;
+
+    inst = mips_instr[idex.next_pc/4-1];
+    idex.new_in = 0;
+    exmem.new_in = 1;
+    exmem.next_pc = idex.next_pc;
+
+    if (sys_type(mem[idex.next_pc/4-1]) /*&& reg[2] == 10*/) {
         haltflag++;
+	printf("halting..");
     } else if (mem_type(inst->opcode)) {
         exmem.alu_result = mem[idex.regA] + idex.sign_ext;
         exmem.next_pc = idex.next_pc;
@@ -164,11 +210,11 @@ void ex(void) {
         } else if (inst->funct == 7) { //srav
             exmem.alu_result = (uint32_t)((int32_t)idex.regB << idex.regA);
         } else if (inst->funct == 8) { //jr
-            // what do
+	  /* exmem.next_pc = idex.regA; */
         } else if (inst->funct == 9) { //jalr
-            exmem.alu_result = idex.regB << idex.regA;
+	  exmem.alu_result = idex.next_pc;
         } else if (inst->funct == 12) { //syscall
-            printf("there was a syscall, don't know how to handle\n");
+	    printf("there was a syscall, don't know how to handle\n");
         } else if (inst->funct == 32) { //add
             exmem.alu_result = idex.regA + idex.regB;
         } else if (inst->funct == 33) { //addu
@@ -208,7 +254,9 @@ void ex(void) {
             exmem.alu_result = (idex.regA < idex.sign_ext) ? 1 : 0;
         } else if (inst->opcode == 0x04) { //beq
             exmem.alu_result = idex.regA & idex.sign_ext;
-        }
+        } else if (inst->opcode == 0x23) { //lw
+	  exmem.alu_result = reg[inst->rs] + idex.sign_ext;
+	}
     }
 }
 
@@ -216,15 +264,30 @@ void ex(void) {
  * Decode
  */
 void id(void) {
-    instruction curr_instr;
-    curr_instr = mips_instr[PC/4];
+  instruction curr_instr;
+
+  if(ifid.new_in == 0)
+    return;
+
+  curr_instr = mips_instr[ifid.next_pc/4-1];
   ifid.new_in = 0;
   idex.new_in = 1;
   idex.regA = reg[curr_instr->rs];
   idex.regB = reg[curr_instr->rt];
   idex.sign_ext = (int32_t)curr_instr->immed; /* sign extension through casting */
   idex.left_shift = idex.sign_ext << 2;
-  idex.next_pc = &ifid.next_pc; /* only really needs to be done once */
+  idex.next_pc = ifid.next_pc;
+
+  if(curr_instr->opcode == 3 ){
+    PC = PC & 0xF000;
+    PC = PC | curr_instr->word_ind;
+  }
+
+  if(reg_type(curr_instr->opcode)\
+     && curr_instr->funct == 8) {
+    PC = reg[31];
+  }
+
 }
 
 
@@ -232,10 +295,14 @@ void id(void) {
  * Fetch
  */
 void ifetch(void) {
-    /* new data */
-    wbif.new_in = 0;
-    ifid.new_in = 1;
-    ifid.next_pc = PC + 4;
+
+  /* no new instructions */
+  if(haltflag)
+    return;
+
+  ifid.new_in = 1;
+  PC += 4; /* need to increment pc for next instruction in the pipeline */
+  ifid.next_pc = PC;
 }
 
 void print_regs(void) {
@@ -278,6 +345,7 @@ void print_reg(uint8_t reg) {
 
 }
 
+
 int branch_type(uint8_t opcode) {
     return opcode == 4 || opcode == 5;
 }
@@ -288,6 +356,10 @@ int reg_type(uint8_t opcode) {
 
 int mem_type(uint8_t opcode) {
     return load_type(opcode) || store_type(opcode);
+}
+
+int j_type(uint8_t opcode) {
+   return opcode == 2 || opcode == 3;
 }
 
 int load_type(uint8_t opcode) {

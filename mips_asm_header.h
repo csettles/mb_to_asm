@@ -51,29 +51,22 @@ typedef struct _idex { /* instruction decode/execute basket */
   uint32_t regB;
   int32_t sign_ext;
   uint32_t left_shift;
-  uint32_t *next_pc;
+  uint32_t next_pc;
 } bskt_idex;
 
 typedef struct _exmem { /* execute/memory access bakset */
   int new_in;
   uint32_t alu_result; /* ALU out */
-  uint32_t *next_pc; /* points to next pc from idex */
+  uint32_t next_pc;
   /* zero flag ?*/
-  /* next pc ? */
-  
-  
 } bskt_exmem;
 
 typedef struct _memwb { /* memory access/write back basket */
   int new_in;
-  uint32_t mem_data;
+  uint32_t wb_data;
+  uint32_t next_pc;
   
 } bskt_memwb;
-
-typedef struct _wbif { /* write back/instruction fetch basket */
-  int new_in;
-  
-} bskt_wbif;
 
 
 int isolate_bits(int base, int start, int end);
