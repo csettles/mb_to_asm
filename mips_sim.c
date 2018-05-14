@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
 
     /* run simulator */
     for(haltflag = 0; !haltflag; total_clocks++) {
+        printf("clock cycle %d\n", total_clocks);
         wb(); mem_access(); ex(); id(); ifetch();
     }
 
