@@ -110,7 +110,7 @@ int isolate_bits(int base, int start, int end) {
     int result, mask = 0, i;
 
     result = base >> end;
-    for (i = 0; i < start - end; i++) {
+    for (i = 0; i < (start - end + 1); i++) {
         mask <<= 1;
         mask |= 1;
     }
@@ -119,6 +119,7 @@ int isolate_bits(int base, int start, int end) {
 
 instruction create_instr(int opcode) {
     instruction ret;
+    printf("%08X\n", opcode);
 
     ret = malloc(sizeof(struct _instr));
     ret->opcode = (uint8_t)isolate_bits(opcode, 31, 26);
@@ -149,25 +150,25 @@ void print_opcode(uint8_t opcode) {
         case 9:
             printf("(addiu)");
             break;
-        case 0xC:
+        case 0x0C:
             printf("(andi)");
             break;
-        case 0xD:
+        case 0x0D:
             printf("(ori)");
             break;
-        case 0xE:
+        case 0x0E:
             printf("(xori)");
             break;
-        case 0xA:
+        case 0x0A:
             printf("(slti)");
             break;
-        case 0xB:
+        case 0x0B:
             printf("(sltui)");
             break;
-        case 0x4:
+        case 4:
             printf("(beq)");
             break;
-        case 0x5:
+        case 5:
             printf("(bne)");
             break;
         case 0x20:
@@ -182,7 +183,7 @@ void print_opcode(uint8_t opcode) {
         case 0x25:
             printf("(lhu)");
             break;
-        case 0xF:
+        case 0x0F:
             printf("(lui)");
             break;
         case 0x23:

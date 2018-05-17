@@ -1,4 +1,4 @@
- #include "mips_asm_header.h"
+#include "mips_asm_header.h"
 
 MB_HDR mb_hdr;         /* Header area */
 MIPS mem[1024];        /* instruction memory, Room for 4K bytes */
@@ -83,7 +83,7 @@ int isolate_bits(int base, int start, int end) {
     int result, mask = 0, i;
 
     result = base >> end;
-    for (i = 0; i < start - end; i++) {
+    for (i = 0; i < (start - end + 1); i++) {
         mask <<= 1;
         mask |= 1;
     }
@@ -152,9 +152,9 @@ void mem_access(void) {
   memwb.next_pc = exmem.next_pc;
 
   if(load_type(mips_instr[exmem.next_pc/4-1]->opcode)) {
-    memwb.wb_data = mem[exmem.alu_result/4];
+    memwb.wb_data = (uint32_t)mem[exmem.alu_result/4];
   } else {
-    memwb.wb_data = exmem.alu_result;
+    memwb.wb_data = (uint32_t)exmem.alu_result;
   }
 
 }
@@ -243,7 +243,6 @@ void ex(void) {
             exmem.alu_result = idex.regA + idex.sign_ext;
         } else if (inst->opcode == 0x0C) { //andi
             exmem.alu_result = idex.regA & idex.sign_ext;
-        } else if (inst->opcode == 0x0D) { //ori
             exmem.alu_result = idex.regA | idex.sign_ext;
         } else if (inst->opcode == 0x0E) { //xori
             exmem.alu_result = idex.regA ^ idex.sign_ext;
@@ -273,7 +272,7 @@ void id(void) {
   idex.new_in = 1;
   idex.regA = reg[curr_instr->rs];
   idex.regB = reg[curr_instr->rt];
-  idex.sign_ext = (int32_t)curr_instr->immed; /* sign extension through casting */
+  idex.sign_ext = (int)curr_instr->immed; /* sign extension through casting */
   idex.left_shift = idex.sign_ext << 2;
   idex.next_pc = ifid.next_pc;
 
