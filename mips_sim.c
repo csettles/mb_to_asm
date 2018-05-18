@@ -3,7 +3,7 @@
 MB_HDR mb_hdr;         /* Header area */
 MIPS mem[1024];        /* instruction memory, Room for 4K bytes */
 
-uint32_t PC = 0;                /* program counter */
+uint32_t PC = 4;                /* program counter */
 int reg[NUM_REGS] = {0};
 instruction mips_instr[1024]; /* all instructions */
 int haltflag;
@@ -37,10 +37,13 @@ int main(int argc, char *argv[]) {
     /* run simulator */
     for (haltflag = 0; !haltflag; total_clocks++) {
         printf("PC=%d\n", PC);
-        wb(); mem_access(); ex(); id(); ifetch();
+        wb();
+        mem_access();
+        ex();
+        id();
+        ifetch();
     }
 
-    printf("Ending PC = %d\n", PC);
     print_regs();
     return 0;
 }
@@ -106,7 +109,7 @@ instruction create_instr(int opcode) {
     ret->funct = (uint8_t) isolate_bits(opcode, 5, 0);
 
     /* I type instruction */
-    ret->immed = (uint16_t) isolate_bits(opcode, 15, 0);
+    ret->immed = (int16_t) isolate_bits(opcode, 15, 0);
 
     /* J type instruction */
     ret->word_ind = (uint32_t) isolate_bits(opcode, 25, 0);
@@ -144,14 +147,18 @@ void wb(void) {
 
 
 void mem_access(void) {
+    instruction inst;
+
     if (exmem.new_in == 0)
         return;
+
+    inst = mips_instr[exmem.next_pc / 4 - 1];
 
     exmem.new_in = 0;
     memwb.new_in = 1;
     memwb.next_pc = exmem.next_pc;
 
-    if (load_type(mips_instr[exmem.next_pc / 4 - 1]->opcode)) {
+    if (load_type(inst->opcode)) {
         memwb.wb_data = (uint32_t) mem[exmem.alu_result / 4];
     } else {
         memwb.wb_data = (uint32_t) exmem.alu_result;
@@ -174,21 +181,23 @@ void ex(void) {
         haltflag++;
         printf("halting...\n");
     } else if (mem_type(inst->opcode)) {
-        exmem.alu_result = mem[idex.regA] + idex.sign_ext;
+        exmem.alu_result = idex.regA + idex.sign_ext;
         exmem.next_pc = idex.next_pc;
     } else if (branch_type(inst->opcode)) {
         exmem.alu_result = 0; // this does not matter
         switch (inst->opcode) {
             case 0x04: // beq
-                if (reg[idex.regA] == reg[idex.regB]) {
-                    exmem.next_pc = idex.next_pc + idex.left_shift;
+                if (idex.regA == idex.regB) {
+                    PC = idex.next_pc + idex.left_shift;
+                    clear_buckets(3);
                 } else {
                     exmem.next_pc = idex.next_pc;
                 }
                 break;
             case 0x05:
-                if (reg[idex.regA] != reg[idex.regB]) {
-                    exmem.next_pc = idex.next_pc + idex.left_shift;
+                if (idex.regA != idex.regB) {
+                    PC = idex.next_pc + idex.left_shift;
+                    clear_buckets(3);
                 } else {
                     exmem.next_pc = idex.next_pc;
                 }
@@ -245,7 +254,8 @@ void ex(void) {
             exmem.alu_result = idex.regA + idex.sign_ext;
         } else if (inst->opcode == 0x0C) { //andi
             exmem.alu_result = idex.regA & idex.sign_ext;
-            exmem.alu_result = idex.regA | idex.sign_ext;
+        } else if (inst->opcode == 0x0D) { //ori
+            exmem.alu_result = idex.regA | (uint16_t)idex.sign_ext;
         } else if (inst->opcode == 0x0E) { //xori
             exmem.alu_result = idex.regA ^ idex.sign_ext;
         } else if (inst->opcode == 0x0A) { //slti
@@ -273,22 +283,22 @@ void id(void) {
     ifid.new_in = 0;
     idex.new_in = 1;
     idex.regA = (uint32_t) reg[curr_instr->rs];
-    idex.regB = (uint32_t) reg[curr_instr->rt];
-    idex.sign_ext = (int) curr_instr->immed; /* sign extension through casting */
-    idex.left_shift = (uint32_t)idex.sign_ext << 2;
+    idex.regB = (uint32_t) reg[curr_instr->rt]; //might segfault if immediate type
+    idex.sign_ext = (int32_t) curr_instr->immed; /* sign extension through casting */
+    idex.left_shift = idex.sign_ext << 2;
     idex.next_pc = ifid.next_pc;
 
     if (curr_instr->opcode == 3) {
         reg[31] = ifid.next_pc;
         idex.next_pc = ifid.next_pc & 0xF0000000;
-        idex.next_pc = ifid.next_pc | (curr_instr->word_ind << 2);
+        idex.next_pc = idex.next_pc | (curr_instr->word_ind << 2);
         PC = idex.next_pc;
-        clear_buckets(); /* start pipelining over */
+        clear_buckets(2); /* start pipelining over */
     }
 
     if (reg_type(curr_instr->opcode) && curr_instr->funct == 8) {
         PC = (uint32_t)reg[31];
-        clear_buckets(); /* start pipelining over */
+        clear_buckets(2); /* start pipelining over */
     }
 
 }
@@ -383,9 +393,18 @@ int sys_type(uint32_t inst) {
     return inst == 0x0000000C;
 }
 
-void clear_buckets(void) {
-    ifid.new_in = 0;
-    idex.new_in = 0;
-    exmem.new_in = 0;
-    memwb.new_in = 0;
+void clear_buckets(int stage) {
+    switch (stage) {
+        case 4:
+            memwb.new_in = 0;
+        case 3:
+            exmem.new_in = 0;
+        case 2:
+            idex.new_in = 0;
+        case 1:
+            ifid.new_in = 0;
+            break;
+        default:
+            printf("stage not recognized\n");
+    }
 }

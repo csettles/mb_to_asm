@@ -36,7 +36,7 @@ typedef struct _instr {
     uint8_t rd;
     uint8_t shamt;
     uint8_t funct;
-    uint16_t immed;
+    int16_t immed;
     uint32_t word_ind;
 } *instruction;
 
@@ -50,7 +50,7 @@ typedef struct _idex { /* instruction decode/execute basket */
   uint32_t regA;
   uint32_t regB;
   int32_t sign_ext;
-  uint32_t left_shift;
+  int32_t left_shift;
   uint32_t next_pc;
 } bskt_idex;
 
@@ -73,7 +73,7 @@ int isolate_bits(int base, int start, int end);
 instruction create_instr(int opcode);
 void print_reg(uint8_t reg);
 void print_regs(void);
-void clear_buckets(void);
+void clear_buckets(int stage);
 
 int verify_header(FILE *fd);
 void load_instructions(FILE *fd);
