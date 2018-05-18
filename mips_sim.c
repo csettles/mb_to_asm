@@ -1,9 +1,9 @@
-#include "mips_asm_header.h"
+ #include "mips_asm_header.h"
 
 MB_HDR mb_hdr;         /* Header area */
 MIPS mem[1024];        /* instruction memory, Room for 4K bytes */
 
-uint32_t PC = 4;                /* program counter */
+uint32_t PC = 0;                /* program counter */
 int reg[NUM_REGS] = {0};
 instruction mips_instr[1024]; /* all instructions */
 int haltflag;
@@ -86,7 +86,7 @@ int isolate_bits(int base, int start, int end) {
     int result, mask = 0, i;
 
     result = base >> end;
-    for (i = 0; i < start - end; i++) {
+    for (i = 0; i < (start - end + 1); i++) {
         mask <<= 1;
         mask |= 1;
     }
@@ -154,11 +154,11 @@ void mem_access(void) {
     memwb.new_in = 1;
     memwb.next_pc = exmem.next_pc;
 
-    if (load_type(mips_instr[exmem.next_pc / 4 - 1]->opcode)) {
-        memwb.wb_data = mem[exmem.alu_result / 4];
-    } else {
-        memwb.wb_data = exmem.alu_result;
-    }
+  if(load_type(mips_instr[exmem.next_pc/4-1]->opcode)) {
+    memwb.wb_data = (uint32_t)mem[exmem.alu_result/4];
+  } else {
+    memwb.wb_data = (uint32_t)exmem.alu_result;
+  }
 
 }
 
@@ -248,7 +248,6 @@ void ex(void) {
             exmem.alu_result = idex.regA + idex.sign_ext;
         } else if (inst->opcode == 0x0C) { //andi
             exmem.alu_result = idex.regA & idex.sign_ext;
-        } else if (inst->opcode == 0x0D) { //ori
             exmem.alu_result = idex.regA | idex.sign_ext;
         } else if (inst->opcode == 0x0E) { //xori
             exmem.alu_result = idex.regA ^ idex.sign_ext;
@@ -273,14 +272,14 @@ void id(void) {
     if (ifid.new_in == 0)
         return;
 
-    curr_instr = mips_instr[ifid.next_pc / 4 - 1];
-    ifid.new_in = 0;
-    idex.new_in = 1;
-    idex.regA = (uint32_t) reg[curr_instr->rs];
-    idex.regB = (uint32_t) reg[curr_instr->rt];
-    idex.sign_ext = (int32_t) curr_instr->immed; /* sign extension through casting */
-    idex.left_shift = idex.sign_ext << 2;
-    idex.next_pc = ifid.next_pc;
+  curr_instr = mips_instr[ifid.next_pc/4-1];
+  ifid.new_in = 0;
+  idex.new_in = 1;
+  idex.regA = (uint32_t) reg[curr_instr->rs];
+  idex.regB = (uint32_t) reg[curr_instr->rt];
+  idex.sign_ext = (int)curr_instr->immed; /* sign extension through casting */
+  idex.left_shift = idex.sign_ext << 2;
+  idex.next_pc = ifid.next_pc;
 
     if (curr_instr->opcode == 3) {
         reg[31] = PC;

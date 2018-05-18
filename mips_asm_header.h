@@ -56,7 +56,7 @@ typedef struct _idex { /* instruction decode/execute basket */
 
 typedef struct _exmem { /* execute/memory access bakset */
   int new_in;
-  uint32_t alu_result; /* ALU out */
+  int alu_result; /* ALU out */
   uint32_t next_pc;
   /* zero flag ?*/
 } bskt_exmem;
