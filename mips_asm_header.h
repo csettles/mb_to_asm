@@ -73,6 +73,7 @@ int isolate_bits(int base, int start, int end);
 instruction create_instr(int opcode);
 void print_reg(uint8_t reg);
 void print_regs(void);
+void clear_buckets(void);
 
 int verify_header(FILE *fd);
 void load_instructions(FILE *fd);

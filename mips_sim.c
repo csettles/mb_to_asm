@@ -1,4 +1,4 @@
- #include "mips_asm_header.h"
+#include "mips_asm_header.h"
 
 MB_HDR mb_hdr;         /* Header area */
 MIPS mem[1024];        /* instruction memory, Room for 4K bytes */
@@ -36,14 +36,11 @@ int main(int argc, char *argv[]) {
 
     /* run simulator */
     for (haltflag = 0; !haltflag; total_clocks++) {
-        wb();
-        mem_access();
-        ex();
-        id();
-        ifetch();
-        printf("Current PC:%d\n", PC);
+        printf("PC=%d\n", PC);
+        wb(); mem_access(); ex(); id(); ifetch();
     }
 
+    printf("Ending PC = %d\n", PC);
     print_regs();
     return 0;
 }
@@ -154,11 +151,11 @@ void mem_access(void) {
     memwb.new_in = 1;
     memwb.next_pc = exmem.next_pc;
 
-  if(load_type(mips_instr[exmem.next_pc/4-1]->opcode)) {
-    memwb.wb_data = (uint32_t)mem[exmem.alu_result/4];
-  } else {
-    memwb.wb_data = (uint32_t)exmem.alu_result;
-  }
+    if (load_type(mips_instr[exmem.next_pc / 4 - 1]->opcode)) {
+        memwb.wb_data = (uint32_t) mem[exmem.alu_result / 4];
+    } else {
+        memwb.wb_data = (uint32_t) exmem.alu_result;
+    }
 
 }
 
@@ -175,7 +172,7 @@ void ex(void) {
 
     if (sys_type(mem[idex.next_pc / 4 - 1]) /*&& reg[2] == 10*/) {
         haltflag++;
-        printf("halting..");
+        printf("halting...\n");
     } else if (mem_type(inst->opcode)) {
         exmem.alu_result = mem[idex.regA] + idex.sign_ext;
         exmem.next_pc = idex.next_pc;
@@ -272,25 +269,26 @@ void id(void) {
     if (ifid.new_in == 0)
         return;
 
-  curr_instr = mips_instr[ifid.next_pc/4-1];
-  ifid.new_in = 0;
-  idex.new_in = 1;
-  idex.regA = (uint32_t) reg[curr_instr->rs];
-  idex.regB = (uint32_t) reg[curr_instr->rt];
-  idex.sign_ext = (int)curr_instr->immed; /* sign extension through casting */
-  idex.left_shift = idex.sign_ext << 2;
-  idex.next_pc = ifid.next_pc;
+    curr_instr = mips_instr[ifid.next_pc / 4 - 1];
+    ifid.new_in = 0;
+    idex.new_in = 1;
+    idex.regA = (uint32_t) reg[curr_instr->rs];
+    idex.regB = (uint32_t) reg[curr_instr->rt];
+    idex.sign_ext = (int) curr_instr->immed; /* sign extension through casting */
+    idex.left_shift = (uint32_t)idex.sign_ext << 2;
+    idex.next_pc = ifid.next_pc;
 
     if (curr_instr->opcode == 3) {
-        reg[31] = PC;
-        PC = PC & 0xF0000000;
-        PC = PC | (curr_instr->word_ind << 2);
-        PC = PC / 4;
-
+        reg[31] = ifid.next_pc;
+        idex.next_pc = ifid.next_pc & 0xF0000000;
+        idex.next_pc = ifid.next_pc | (curr_instr->word_ind << 2);
+        PC = idex.next_pc;
+        clear_buckets(); /* start pipelining over */
     }
 
     if (reg_type(curr_instr->opcode) && curr_instr->funct == 8) {
-        PC = reg[31];
+        PC = (uint32_t)reg[31];
+        clear_buckets(); /* start pipelining over */
     }
 
 }
@@ -383,4 +381,11 @@ int store_type(uint8_t opcode) {
 
 int sys_type(uint32_t inst) {
     return inst == 0x0000000C;
+}
+
+void clear_buckets(void) {
+    ifid.new_in = 0;
+    idex.new_in = 0;
+    exmem.new_in = 0;
+    memwb.new_in = 0;
 }
